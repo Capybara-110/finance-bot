@@ -58,13 +58,9 @@ async def post_init(application: Application) -> None:
     print("Меню команд налаштовано.")
 
 async def stop_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    """Зупиняє роботу бота."""
-    await update.message.reply_text("Бот зупиняється... До побачення!")
-    # Ця функція коректно зупиняє всі процеси бота
-    # У режимі webhook вона не потрібна, але для цілісності коду краще залишити
-    # await context.application.shutdown() 
-    # Краще просто дати серверу заснути
-
+    """Повідомляє про те, що бот працює на сервері."""
+    await update.message.reply_text("Бот працює на віддаленому сервері і не може бути зупинений цією командою.")
+    
 def init_db():
     """Створює базу даних та таблицю, якщо їх ще не існує."""
     conn = sqlite3.connect('finance.db') # Створює або підключається до файлу finance.db
@@ -289,43 +285,28 @@ WEBHOOK_URL = os.environ.get("WEBHOOK_URL")
 async def main() -> None:
     """Запускає бота в режимі вебхука."""
     
-    # Перевіряємо, чи задано WEBHOOK_URL, коли запускаємо в режимі вебхука
-    if not WEBHOOK_URL:
-        raise ValueError("Необхідно встановити змінну оточення WEBHOOK_URL")
-
     # Викликаємо функцію для створення БД при старті
     init_db()
 
     # Створюємо Application
     application = Application.builder().token(TOKEN).post_init(post_init).build()
 
-    # ----- Реєстрація всіх ваших обробників команд (цей блок копіюємо як є) -----
-    # Для звичайних користувачів
+    # ----- Реєстрація всіх ваших обробників команд -----
     application.add_handler(CommandHandler("start", start, filters=filters.User(user_id=ALLOWED_USER_IDS)))
     application.add_handler(CommandHandler("stats", stats, filters=filters.User(user_id=ALLOWED_USER_IDS)))
-    
-    # Для власника
+    application.add_handler(CommandHandler("backup", backup_command, filters=filters.User(user_id=OWNER_ID)))
+
+    application.add_handler(MessageHandler(filters.Document.file_name('finance.db') & filters.User(user_id=OWNER_ID), restore_command))
     application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND & filters.User(user_id=OWNER_ID), handle_message))
+    
     application.add_handler(CommandHandler("del", del_command, filters=filters.User(user_id=OWNER_ID)))
     application.add_handler(CommandHandler("edit", edit_command, filters=filters.User(user_id=OWNER_ID)))
     application.add_handler(CommandHandler("reset", reset_command, filters=filters.User(user_id=OWNER_ID)))
     application.add_handler(CommandHandler("stop", stop_command, filters=filters.User(user_id=OWNER_ID)))
-    # --------------------------------------------------------------------------
 
-    # Запускаємо бота через вебхук
-    print(f"Запускаємо вебхук на порті {PORT}...")
-    await application.run_webhook(
-        listen="0.0.0.0",
-        port=PORT,
-        webhook_url=WEBHOOK_URL
-    )
-
-    # Одноразово встановлюємо вебхук на сервері Telegram
-    # Важливо, щоб ця команда виконувалася після запуску слухача
-    await application.bot.set_webhook(url=WEBHOOK_URL)
-    
-    print("Бот запущений через вебхук!")
-
+    # Запускаємо веб-сервер, який буде слухати вхідні повідомлення
+    # Більше нічого не потрібно викликати, цей метод робить все сам
+    await application.run_webhook(listen="0.0.0.0", port=int(os.environ.get('PORT', 8443)))
 
 if __name__ == '__main__':
     asyncio.run(main())
