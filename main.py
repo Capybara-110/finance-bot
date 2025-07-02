@@ -278,6 +278,39 @@ async def my_id(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     user_id = update.effective_user.id
     await update.message.reply_text(f"Ваш Telegram ID: {user_id}")
 
+async def backup_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """Надсилає файл бази даних власнику."""
+    try:
+        with open('finance.db', 'rb') as doc:
+            await update.message.reply_document(document=doc, filename='finance.db')
+    except FileNotFoundError:
+        await update.message.reply_text("Файл бази даних не знайдено.")
+
+async def restore_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """Приймає файл finance.db та замінює ним поточну БД."""
+    # Перевіряємо, що документ надіслав саме власник
+    if update.effective_user.id != OWNER_ID:
+        return
+
+    try:
+        document = update.message.document
+        if document.file_name != 'finance.db':
+            await update.message.reply_text("Будь ласка, завантажте файл з назвою 'finance.db'.")
+            return
+
+        # Завантажуємо файл, який надіслав користувач
+        new_db_file = await document.get_file()
+        await new_db_file.download_to_drive('finance.db')
+        
+        await update.message.reply_text(
+            "✅ Відновлення завершено! База даних була успішно замінена.\n"
+            "Щоб зміни вступили в силу, бот буде перезапущено. Це може зайняти хвилину."
+        )
+        print("Базу даних оновлено. Сервіс буде перезапущено Render'ом.")
+
+    except Exception as e:
+        await update.message.reply_text(f"Під час відновлення сталася помилка: {e}")
+
 # Налаштування для вебхука
 PORT = int(os.environ.get('PORT', 8443))
 WEBHOOK_URL = os.environ.get("WEBHOOK_URL")
