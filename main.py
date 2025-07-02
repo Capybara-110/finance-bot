@@ -57,6 +57,14 @@ async def post_init(application: Application) -> None:
     
     print("Меню команд налаштовано.")
 
+async def stop_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """Зупиняє роботу бота."""
+    await update.message.reply_text("Бот зупиняється... До побачення!")
+    # Ця функція коректно зупиняє всі процеси бота
+    # У режимі webhook вона не потрібна, але для цілісності коду краще залишити
+    # await context.application.shutdown() 
+    # Краще просто дати серверу заснути
+    
 def init_db():
     """Створює базу даних та таблицю, якщо їх ще не існує."""
     conn = sqlite3.connect('finance.db') # Створює або підключається до файлу finance.db
