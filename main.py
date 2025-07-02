@@ -189,7 +189,7 @@ def edit_expense(record_id: int, new_amount: float, new_category: str):
 # Функція, яка буде викликатись при команді /start
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     user_name = update.effective_user.first_name
-    await update.message.reply_text(f"Привіт, {user_name}! Я ваш особистий фінансовий бот.")
+    await update.message.reply_text(f"Привіт, {user_name}! Я ваш особистий фінансовий бот. (Версія 2)")
 
 # Функція для очистки бази даних
 async def del_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
