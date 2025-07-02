@@ -307,5 +307,28 @@ async def main() -> None:
     # Запускаємо вебхук
     await application.run_webhook(listen="0.0.0.0", port=int(os.environ.get('PORT', 8443)))
 
+# НОВИЙ, ПРАВИЛЬНИЙ БЛОК ЗАПУСКУ
 if __name__ == '__main__':
-    asyncio.run(main())
+    # Викликаємо функцію для створення БД при старті
+    init_db()
+
+    # Створюємо Application
+    application = Application.builder().token(TOKEN).post_init(post_init).build()
+
+    # ----- Реєстрація всіх ваших обробників команд -----
+    application.add_handler(CommandHandler("start", start, filters=filters.User(user_id=ALLOWED_USER_IDS)))
+    application.add_handler(CommandHandler("stats", stats, filters=filters.User(user_id=ALLOWED_USER_IDS)))
+    
+    # Обробники тільки для власника
+    application.add_handler(CommandHandler("backup", backup_command, filters=filters.User(user_id=OWNER_ID)))
+    application.add_handler(CommandHandler("del", del_command, filters=filters.User(user_id=OWNER_ID)))
+    application.add_handler(CommandHandler("edit", edit_command, filters=filters.User(user_id=OWNER_ID)))
+    application.add_handler(CommandHandler("reset", reset_command, filters=filters.User(user_id=OWNER_ID)))
+    application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND & filters.User(user_id=OWNER_ID), handle_message))
+
+    # Запускаємо бота. Цей метод сам керує асинхронним циклом.
+    application.run_webhook(
+        listen="0.0.0.0",
+        port=int(os.environ.get('PORT', 8443)),
+        webhook_url=os.environ.get("WEBHOOK_URL")
+    )
