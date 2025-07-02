@@ -329,7 +329,7 @@ async def main() -> None:
     application.add_handler(CommandHandler("stats", stats, filters=filters.User(user_id=ALLOWED_USER_IDS)))
     application.add_handler(CommandHandler("backup", backup_command, filters=filters.User(user_id=OWNER_ID)))
 
-    application.add_handler(MessageHandler(filters.Document.file_name('finance.db') & filters.User(user_id=OWNER_ID), restore_command))
+    application.add_handler(MessageHandler(filters.Document.ALL & filters.User(user_id=OWNER_ID), restore_command))
     application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND & filters.User(user_id=OWNER_ID), handle_message))
     
     application.add_handler(CommandHandler("del", del_command, filters=filters.User(user_id=OWNER_ID)))
