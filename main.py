@@ -64,7 +64,7 @@ async def stop_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
     # У режимі webhook вона не потрібна, але для цілісності коду краще залишити
     # await context.application.shutdown() 
     # Краще просто дати серверу заснути
-    
+
 def init_db():
     """Створює базу даних та таблицю, якщо їх ще не існує."""
     conn = sqlite3.connect('finance.db') # Створює або підключається до файлу finance.db
@@ -286,7 +286,7 @@ async def my_id(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
 PORT = int(os.environ.get('PORT', 8443))
 WEBHOOK_URL = os.environ.get("WEBHOOK_URL")
 
-def main() -> None:
+async def main() -> None:
     """Запускає бота в режимі вебхука."""
     
     # Перевіряємо, чи задано WEBHOOK_URL, коли запускаємо в режимі вебхука
@@ -314,7 +314,7 @@ def main() -> None:
 
     # Запускаємо бота через вебхук
     print(f"Запускаємо вебхук на порті {PORT}...")
-    application.run_webhook(
+    await application.run_webhook(
         listen="0.0.0.0",
         port=PORT,
         webhook_url=WEBHOOK_URL
@@ -322,10 +322,10 @@ def main() -> None:
 
     # Одноразово встановлюємо вебхук на сервері Telegram
     # Важливо, щоб ця команда виконувалася після запуску слухача
-    application.bot.set_webhook(url=WEBHOOK_URL)
+    await application.bot.set_webhook(url=WEBHOOK_URL)
     
     print("Бот запущений через вебхук!")
 
 
 if __name__ == '__main__':
-    main()
+    asyncio.run(main())
