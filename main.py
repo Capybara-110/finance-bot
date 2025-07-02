@@ -77,6 +77,52 @@ def init_db():
     conn.commit() # Зберігаємо зміни
     conn.close()  # Закриваємо з'єднання
 
+def reorder_ids_and_reset_sequence():
+    """
+    Перестворює таблицю expenses та примусово скидає лічильник ID.
+    НЕ РЕКОМЕНДУЄТЬСЯ ДЛЯ ВИРОБНИЧОГО ВИКОРИСТАННЯ.
+    """
+    conn = sqlite3.connect('finance.db')
+    cursor = conn.cursor()
+    
+    try:
+        cursor.execute('BEGIN TRANSACTION;')
+        
+        # 1. Створюємо тимчасову таблицю
+        cursor.execute('''
+            CREATE TABLE expenses_new (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                amount REAL NOT NULL,
+                category TEXT NOT NULL,
+                created_at TEXT NOT NULL
+            )
+        ''')
+        
+        # 2. Копіюємо дані
+        cursor.execute('''
+            INSERT INTO expenses_new (amount, category, created_at)
+            SELECT amount, category, created_at FROM expenses ORDER BY id ASC
+        ''')
+        
+        # 3. Видаляємо стару таблицю
+        cursor.execute('DROP TABLE expenses')
+        
+        # 4. Перейменовуємо нову
+        cursor.execute('ALTER TABLE expenses_new RENAME TO expenses')
+        
+        # 5. !!! КЛЮЧОВИЙ КРОК !!!
+        # Оновлюємо системний лічильник. Ми встановлюємо його на значення
+        # останнього ID в нашій новій таблиці.
+        cursor.execute("UPDATE sqlite_sequence SET seq = (SELECT MAX(id) FROM expenses) WHERE name='expenses'")
+        
+        conn.commit()
+        
+    except Exception as e:
+        conn.rollback()
+        print(f"Помилка при перенумерації ID: {e}")
+    finally:
+        conn.close()
+
 def add_expense(amount: float, category: str):
     """Додає новий запис про витрату в базу даних."""
     conn = sqlite3.connect('finance.db')
@@ -100,6 +146,7 @@ def delete_expense(record_id: int):
     cursor.execute('DELETE FROM expenses WHERE id = ?', (record_id,))
     conn.commit()
     conn.close()
+    reorder_ids_and_reset_sequence()
 
 def get_statistics():
     """Отримує всі записи та загальну суму з бази даних."""
