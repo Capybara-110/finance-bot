@@ -40,6 +40,7 @@ async def post_init(application: Application) -> None:
     owner_commands = [
         BotCommand("start", "Перезапустити бота"),
         BotCommand("stats", "Показати статистику"),
+        BotCommand("backup", "Завантажити базу даних"),
         BotCommand("edit", "Редагувати запис (ID сума категорія)"),
         BotCommand("del", "Видалити запис (ID)"),
         BotCommand("reset", "❗️ Скинути всі дані"),
@@ -56,10 +57,6 @@ async def post_init(application: Application) -> None:
     await application.bot.set_my_commands(owner_commands, scope=BotCommandScopeChat(chat_id=OWNER_ID))
     
     print("Меню команд налаштовано.")
-
-async def stop_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    """Повідомляє про те, що бот працює на сервері."""
-    await update.message.reply_text("Бот працює на віддаленому сервері і не може бути зупинений цією командою.")
     
 def init_db():
     """Створює базу даних та таблицю, якщо їх ще не існує."""
@@ -286,31 +283,6 @@ async def backup_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
     except FileNotFoundError:
         await update.message.reply_text("Файл бази даних не знайдено.")
 
-async def restore_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    """Приймає файл finance.db та замінює ним поточну БД."""
-    # Перевіряємо, що документ надіслав саме власник
-    if update.effective_user.id != OWNER_ID:
-        return
-
-    try:
-        document = update.message.document
-        if document.file_name != 'finance.db':
-            await update.message.reply_text("Будь ласка, завантажте файл з назвою 'finance.db'.")
-            return
-
-        # Завантажуємо файл, який надіслав користувач
-        new_db_file = await document.get_file()
-        await new_db_file.download_to_drive('finance.db')
-        
-        await update.message.reply_text(
-            "✅ Відновлення завершено! База даних була успішно замінена.\n"
-            "Щоб зміни вступили в силу, бот буде перезапущено. Це може зайняти хвилину."
-        )
-        print("Базу даних оновлено. Сервіс буде перезапущено Render'ом.")
-
-    except Exception as e:
-        await update.message.reply_text(f"Під час відновлення сталася помилка: {e}")
-
 # Налаштування для вебхука
 PORT = int(os.environ.get('PORT', 8443))
 WEBHOOK_URL = os.environ.get("WEBHOOK_URL")
@@ -318,27 +290,21 @@ WEBHOOK_URL = os.environ.get("WEBHOOK_URL")
 async def main() -> None:
     """Запускає бота в режимі вебхука."""
     
-    # Викликаємо функцію для створення БД при старті
     init_db()
-
-    # Створюємо Application
     application = Application.builder().token(TOKEN).post_init(post_init).build()
 
-    # ----- Реєстрація всіх ваших обробників команд -----
+    # ----- Реєстрація обробників -----
     application.add_handler(CommandHandler("start", start, filters=filters.User(user_id=ALLOWED_USER_IDS)))
     application.add_handler(CommandHandler("stats", stats, filters=filters.User(user_id=ALLOWED_USER_IDS)))
-    application.add_handler(CommandHandler("backup", backup_command, filters=filters.User(user_id=OWNER_ID)))
-
-    application.add_handler(MessageHandler(filters.Document.ALL & filters.User(user_id=OWNER_ID), restore_command))
-    application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND & filters.User(user_id=OWNER_ID), handle_message))
     
+    # Обробники тільки для власника
+    application.add_handler(CommandHandler("backup", backup_command, filters=filters.User(user_id=OWNER_ID)))
     application.add_handler(CommandHandler("del", del_command, filters=filters.User(user_id=OWNER_ID)))
     application.add_handler(CommandHandler("edit", edit_command, filters=filters.User(user_id=OWNER_ID)))
     application.add_handler(CommandHandler("reset", reset_command, filters=filters.User(user_id=OWNER_ID)))
-    application.add_handler(CommandHandler("stop", stop_command, filters=filters.User(user_id=OWNER_ID)))
-
-    # Запускаємо веб-сервер, який буде слухати вхідні повідомлення
-    # Більше нічого не потрібно викликати, цей метод робить все сам
+    application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND & filters.User(user_id=OWNER_ID), handle_message))
+    
+    # Запускаємо вебхук
     await application.run_webhook(listen="0.0.0.0", port=int(os.environ.get('PORT', 8443)))
 
 if __name__ == '__main__':
