@@ -62,6 +62,7 @@ async def post_init(application: Application) -> None:
 
 async def my_id(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """Повертає користувачу його унікальний Telegram ID."""
+    print(f"!!! Користувач {update.effective_user.id} викликав команду /myid !!!")
     user_id = update.effective_user.id
     await update.message.reply_text(f"Ваш Telegram ID: {user_id}")
 
@@ -189,7 +190,7 @@ def edit_expense(record_id: int, new_amount: float, new_category: str):
 # Функція, яка буде викликатись при команді /start
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     user_name = update.effective_user.first_name
-    await update.message.reply_text(f"Привіт, {user_name}! Я ваш особистий фінансовий бот. (Версія 2)")
+    await update.message.reply_text(f"Привіт, {user_name}! Я ваш особистий фінансовий бот.")
 
 # Функція для очистки бази даних
 async def del_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
