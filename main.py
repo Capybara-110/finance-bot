@@ -353,7 +353,7 @@ async def main() -> None:
     # ----- Реєстрація обробників -----
     application.add_handler(CommandHandler("start", start, filters=filters.User(user_id=ALLOWED_USER_IDS)))
     application.add_handler(CommandHandler("stats", stats, filters=filters.User(user_id=ALLOWED_USER_IDS)))
-    application.add_handler(CommandHandler("getid", get_id, filters=filters.User(user_id=ALLOWED_USER_IDS)))
+    application.add_handler(CommandHandler("getid", get_id))
     
     # Обробники тільки для власника
     application.add_handler(CommandHandler("backup", backup_command, filters=filters.User(user_id=OWNER_ID)))
@@ -372,6 +372,10 @@ if __name__ == '__main__':
 
     # Створюємо Application
     application = Application.builder().token(TOKEN).post_init(post_init).build()
+
+    # Рядок для відлагодження
+    print(f"--- DEBUG: Реєструємо обробники. Дозволені ID: {ALLOWED_USER_IDS}")
+    application.add_handler(CommandHandler("getid", get_id))
 
     # ----- Реєстрація всіх ваших обробників команд -----
     application.add_handler(CommandHandler("start", start, filters=filters.User(user_id=ALLOWED_USER_IDS)))
