@@ -34,14 +34,14 @@ async def post_init(application: Application) -> None:
     user_commands = [
         BotCommand("start", "Перезапустити бота"),
         BotCommand("stats", "Показати статистику"),
-        BotCommand("myid", "Дізнатися свій ID")
+        BotCommand("getid", "Дізнатися свій ID")
     ]
     
     # Створюємо розширений список команд для власника
     owner_commands = [
         BotCommand("start", "Перезапустити бота"),
         BotCommand("stats", "Показати статистику"),
-        BotCommand("myid", "Дізнатися свій ID"),
+        BotCommand("getid", "Дізнатися свій ID"),
         BotCommand("backup", "Завантажити базу даних"),
         BotCommand("edit", "Редагувати запис (ID сума категорія)"),
         BotCommand("del", "Видалити запис (ID)"),
@@ -326,7 +326,9 @@ def reset_database():
     conn.close()
 
 # Функція, що повертає телеграм ID користувача
-async def my_id(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+async def get_id(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """Повертає користувачу його унікальний Telegram ID."""
+    print(f"!!! Користувач {update.effective_user.id} викликав команду /getid !!!")
     user_id = update.effective_user.id
     await update.message.reply_text(f"Ваш Telegram ID: {user_id}")
 
@@ -351,8 +353,8 @@ async def main() -> None:
     # ----- Реєстрація обробників -----
     application.add_handler(CommandHandler("start", start, filters=filters.User(user_id=ALLOWED_USER_IDS)))
     application.add_handler(CommandHandler("stats", stats, filters=filters.User(user_id=ALLOWED_USER_IDS)))
-    application.add_handler(CommandHandler("myid", my_id, filters=filters.User(user_id=ALLOWED_USER_IDS)))
-
+    application.add_handler(CommandHandler("getid", get_id, filters=filters.User(user_id=ALLOWED_USER_IDS)))
+    
     # Обробники тільки для власника
     application.add_handler(CommandHandler("backup", backup_command, filters=filters.User(user_id=OWNER_ID)))
     application.add_handler(CommandHandler("del", del_command, filters=filters.User(user_id=OWNER_ID)))
