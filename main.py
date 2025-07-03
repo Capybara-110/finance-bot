@@ -62,7 +62,7 @@ async def post_init(application: Application) -> None:
 
 async def my_id(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """Повертає користувачу його унікальний Telegram ID."""
-    print(f"!!! Користувач {update.effective_user.id} викликав команду /myid !!!")
+    #print(f"!!! Користувач {update.effective_user.id} викликав команду /myid !!!")
     user_id = update.effective_user.id
     await update.message.reply_text(f"Ваш Telegram ID: {user_id}")
 
@@ -328,7 +328,7 @@ def reset_database():
 # Функція, що повертає телеграм ID користувача
 async def get_id(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """Повертає користувачу його унікальний Telegram ID."""
-    print(f"!!! Користувач {update.effective_user.id} викликав команду /getid !!!")
+    #print(f"!!! Користувач {update.effective_user.id} викликав команду /getid !!!")
     user_id = update.effective_user.id
     await update.message.reply_text(f"Ваш Telegram ID: {user_id}")
 
@@ -374,12 +374,12 @@ if __name__ == '__main__':
     application = Application.builder().token(TOKEN).post_init(post_init).build()
 
     # Рядок для відлагодження
-    print(f"--- DEBUG: Реєструємо обробники. Дозволені ID: {ALLOWED_USER_IDS}")
-    application.add_handler(CommandHandler("getid", get_id))
+    #print(f"--- DEBUG: Реєструємо обробники. Дозволені ID: {ALLOWED_USER_IDS}")
+    #application.add_handler(CommandHandler("getid", get_id))
 
     # ----- Реєстрація всіх ваших обробників команд -----
     application.add_handler(CommandHandler("start", start, filters=filters.User(user_id=ALLOWED_USER_IDS)))
-    application.add_handler(CommandHandler("stats", stats, filters=filters.User(user_id=ALLOWED_USER_IDS)))
+    application.add_handler(CommandHandler("stats", stats, filters=filters.User(user_id=ALLOWED_USER_IDS)))    
     
     # Обробники тільки для власника
     application.add_handler(CommandHandler("backup", backup_command, filters=filters.User(user_id=OWNER_ID)))
