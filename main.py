@@ -340,32 +340,7 @@ async def backup_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
     except FileNotFoundError:
         await update.message.reply_text("Файл бази даних не знайдено.")
 
-# Налаштування для вебхука
-PORT = int(os.environ.get('PORT', 8443))
-WEBHOOK_URL = os.environ.get("WEBHOOK_URL")
 
-async def main() -> None:
-    """Запускає бота в режимі вебхука."""
-    
-    init_db()
-    application = Application.builder().token(TOKEN).post_init(post_init).build()
-
-    # ----- Реєстрація обробників -----
-    application.add_handler(CommandHandler("start", start, filters=filters.User(user_id=ALLOWED_USER_IDS)))
-    application.add_handler(CommandHandler("stats", stats, filters=filters.User(user_id=ALLOWED_USER_IDS)))
-    application.add_handler(CommandHandler("getid", get_id))
-    
-    # Обробники тільки для власника
-    application.add_handler(CommandHandler("backup", backup_command, filters=filters.User(user_id=OWNER_ID)))
-    application.add_handler(CommandHandler("del", del_command, filters=filters.User(user_id=OWNER_ID)))
-    application.add_handler(CommandHandler("edit", edit_command, filters=filters.User(user_id=OWNER_ID)))
-    application.add_handler(CommandHandler("reset", reset_command, filters=filters.User(user_id=OWNER_ID)))
-    application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND & filters.User(user_id=OWNER_ID), handle_message))
-    
-    # Запускаємо вебхук
-    await application.run_webhook(listen="0.0.0.0", port=int(os.environ.get('PORT', 8443)))
-
-# НОВИЙ, ПРАВИЛЬНИЙ БЛОК ЗАПУСКУ
 if __name__ == '__main__':
     # Викликаємо функцію для створення БД при старті
     init_db()
@@ -375,7 +350,7 @@ if __name__ == '__main__':
 
     # Рядок для відлагодження
     #print(f"--- DEBUG: Реєструємо обробники. Дозволені ID: {ALLOWED_USER_IDS}")
-    #application.add_handler(CommandHandler("getid", get_id))
+    application.add_handler(CommandHandler("getid", get_id))
 
     # ----- Реєстрація всіх ваших обробників команд -----
     application.add_handler(CommandHandler("start", start, filters=filters.User(user_id=ALLOWED_USER_IDS)))
@@ -391,6 +366,6 @@ if __name__ == '__main__':
     # Запускаємо бота. Цей метод сам керує асинхронним циклом.
     application.run_webhook(
         listen="0.0.0.0",
-        port=int(os.environ.get('PORT', 8443)),
+        port=int(os.environ.get('PORT', 8443)),        
         webhook_url=os.environ.get("WEBHOOK_URL")
     )
