@@ -347,9 +347,7 @@ if __name__ == '__main__':
 
     # Створюємо Application
     application = Application.builder().token(TOKEN).post_init(post_init).build()
-
-    # Рядок для відлагодження
-    #print(f"--- DEBUG: Реєструємо обробники. Дозволені ID: {ALLOWED_USER_IDS}")
+    
     application.add_handler(CommandHandler("getid", get_id))
 
     # ----- Реєстрація всіх ваших обробників команд -----
