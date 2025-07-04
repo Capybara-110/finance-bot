@@ -215,14 +215,11 @@ def replace_db_content(source_path: str, target_path: str):
 
 async def restore_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """Приймає файл, зчитує з нього дані та переносить їх у поточну БД."""
-
-    print("--- СПРОБА ВІДНОВЛЕННЯ: функція restore_command викликана! ---") 
-
     if update.effective_user.id != OWNER_ID:
-        print("--- ВІДХИЛЕНО: Користувач не є власником. ---")
         return
 
-    temp_file_path = 'restored_db_temp.db'
+    # Створюємо надійний, АБСОЛЮТНИЙ шлях для тимчасового файлу на нашому диску
+    temp_file_path = os.path.join(DATA_DIR, 'restored_db_temp.db')
     
     try:
         document = update.message.document
@@ -230,26 +227,28 @@ async def restore_command(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
             await update.message.reply_text("Будь ласка, надішліть мені файл з назвою 'finance.db'.")
             return
 
-        # Завантажуємо файл у тимчасове місце
+        # Завантажуємо файл у надійне місце
         new_db_file = await document.get_file()
         await new_db_file.download_to_drive(temp_file_path)
         
-        # Викликаємо нашу функцію для міграції даних
+        # Викликаємо функцію для міграції даних
         replace_db_content(source_path=temp_file_path, target_path=DB_PATH)
         
         await update.message.reply_text(
             "✅ Відновлення завершено! Дані були успішно перенесені.\n\n"
-            "Щоб зміни вступили в силу, будь ласка, **перезапустіть сервіс вручну** в панелі керування Render."
+            "Щоб зміни вступили в силу, будь ласка, **перезапустіть сервіс вручную** в панелі керування Render."
         )
         print(f"Дані в БД оновлено з файлу користувачем {OWNER_ID}. Потрібен перезапуск.")
 
     except Exception as e:
+        print(f"ПОМИЛКА ПІД ЧАС ВІДНОВЛЕННЯ: {e}") # Додамо print для логів
         await update.message.reply_text(f"Під час відновлення сталася помилка: {e}")
     finally:
-        # Дуже важливо: видаляємо тимчасовий файл, навіть якщо сталася помилка
+        # Видаляємо тимчасовий файл, де б він не був
         if os.path.exists(temp_file_path):
             os.remove(temp_file_path)
-
+            print("Тимчасовий файл бази даних видалено.")
+            
 def edit_expense(record_id: int, new_amount: float, new_category: str):
     """Оновлює суму та категорію існуючого запису."""
     conn = sqlite3.connect('finance.db')
