@@ -432,7 +432,7 @@ if __name__ == '__main__':
     application.add_handler(CommandHandler("edit", edit_command, filters=filters.User(user_id=OWNER_ID)))
     application.add_handler(CommandHandler("reset", reset_command, filters=filters.User(user_id=OWNER_ID)))
     application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND & filters.User(user_id=OWNER_ID), handle_message))
-    application.add_handler(MessageHandler(filters.DOCUMENT & filters.User(user_id=OWNER_ID), restore_command))
+    application.add_handler(MessageHandler(filters.Document.ALL & filters.User(user_id=OWNER_ID), restore_command))
 
     # Запускаємо бота. Цей метод сам керує асинхронним циклом.
     application.run_webhook(
