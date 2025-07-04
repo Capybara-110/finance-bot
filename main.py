@@ -2,8 +2,6 @@
 import asyncio
 import sqlite3
 import os
-import time
-import traceback
 from datetime import datetime
 
 # Бібліотека python-telegram-bot
@@ -28,11 +26,6 @@ ALLOWED_USER_IDS = [285168148, 6300922224, 1365817032]
 
 # ID власника бота, який має розширені права
 OWNER_ID = 285168148
-
-# Шлях до папки на постійному диску Render
-DATA_DIR = '/var/data'
-# Повний шлях до файлу бази даних
-DB_PATH = os.path.join(DATA_DIR, 'finance.db')
 
 async def post_init(application: Application) -> None:
     """Налаштовує меню команд: базове для всіх і розширене для власника."""
@@ -214,72 +207,7 @@ def replace_db_content(source_path: str, target_path: str):
     
     conn_target.commit()
     conn_target.close()
-
-async def restore_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    """Приймає файл, зчитує з нього дані та переносить їх у поточну БД."""
-    if update.effective_user.id != OWNER_ID:
-        return
-
-    temp_file_path = os.path.join(DATA_DIR, 'restored_db_temp.db')
-    
-    try:
-        # --- Перевірка №1: Чи існує і чи доступна для запису наша папка? ---
-        print(f"Перевіряю директорію: {DATA_DIR}")
-        if not os.path.isdir(DATA_DIR):
-            print(f"КРИТИЧНО: Директорія {DATA_DIR} не існує!")
-            await update.message.reply_text(f"Помилка: Директорія для даних {DATA_DIR} не знайдена.")
-            return
-        if not os.access(DATA_DIR, os.W_OK):
-            print(f"КРИТИЧНО: Немає прав на запис у {DATA_DIR}!")
-            await update.message.reply_text(f"Помилка: Немає прав на запис у директорію {DATA_DIR}.")
-            return
-        print("Директорія даних існує і доступна для запису.")
-        # -------------------------------------------------------------
-
-        document = update.message.document
-        if not document or document.file_name != 'finance.db':
-            await update.message.reply_text("Будь ласка, надішліть мені файл з назвою 'finance.db'.")
-            return
-
-        print("Отримано документ. Починаю завантаження в пам'ять...")
-        new_db_file = await document.get_file()
-        
-        db_bytearray = await new_db_file.download_as_bytearray()
-        print(f"Завантажено {len(db_bytearray)} байт.")
-
-        # --- Перевірка №2: Записуємо і негайно перевіряємо, чи файл з'явився ---
-        print(f"Записую байти в тимчасовий файл: {temp_file_path}")
-        with open(temp_file_path, 'wb') as f:
-            f.write(db_bytearray)
-        print("Запис завершено. Перевіряю наявність файлу...")
-
-        if not os.path.exists(temp_file_path):
-            print(f"КРИТИЧНО: Файл {temp_file_path} НЕ З'ЯВИВСЯ після запису!")
-            dir_contents = os.listdir(DATA_DIR)
-            print(f"Поточний вміст директорії {DATA_DIR}: {dir_contents}")
-            await update.message.reply_text("Критична помилка: не вдалося створити тимчасовий файл на диску.")
-            return
-        print(f"Файл {temp_file_path} успішно створено.")
-        # --------------------------------------------------------------------
-
-        print("Починаю міграцію даних...")
-        replace_db_content(source_path=temp_file_path, target_path=DB_PATH)
-        print("Міграцію даних завершено.")
-        
-        await update.message.reply_text(
-            "✅ Відновлення завершено! Дані були успішно перенесені.\n\n"
-            "Щоб зміни вступили в силу, будь ласка, **перезапустіть сервіс вручну**."
-        )
-
-    except Exception as e:
-        print("!!! СТАЛАСЯ НЕПЕРЕДБАЧУВАНА ПОМИЛКА !!!")
-        traceback.print_exc() # Ця команда виведе детальний звіт про помилку в логи
-        await update.message.reply_text(f"Під час відновлення сталася помилка: {e}")
-    finally:
-        if os.path.exists(temp_file_path):
-            os.remove(temp_file_path)
-            print("Тимчасовий файл бази даних видалено.")
-            
+           
 def edit_expense(record_id: int, new_amount: float, new_category: str):
     """Оновлює суму та категорію існуючого запису."""
     conn = sqlite3.connect('finance.db')
@@ -462,8 +390,7 @@ if __name__ == '__main__':
     application.add_handler(CommandHandler("edit", edit_command, filters=filters.User(user_id=OWNER_ID)))
     application.add_handler(CommandHandler("reset", reset_command, filters=filters.User(user_id=OWNER_ID)))
     application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND & filters.User(user_id=OWNER_ID), handle_message))
-    application.add_handler(MessageHandler(filters.Document.ALL & filters.User(user_id=OWNER_ID), restore_command))
-
+    
     # Запускаємо бота. Цей метод сам керує асинхронним циклом.
     application.run_webhook(
         listen="0.0.0.0",
