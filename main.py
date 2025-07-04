@@ -240,7 +240,7 @@ async def restore_command(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
         # Дуже важливо: видаляємо тимчасовий файл, навіть якщо сталася помилка
         if os.path.exists(temp_file_path):
             os.remove(temp_file_path)
-                
+
 def edit_expense(record_id: int, new_amount: float, new_category: str):
     """Оновлює суму та категорію існуючого запису."""
     conn = sqlite3.connect('finance.db')
@@ -253,7 +253,7 @@ def edit_expense(record_id: int, new_amount: float, new_category: str):
 # Функція, яка буде викликатись при команді /start
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     user_name = update.effective_user.first_name
-    await update.message.reply_text(f"Привіт, {user_name}! Я ваш особистий фінансовий бот.")
+    await update.message.reply_text(f"Привіт, {user_name}! Bot has been activated!")
 
 # Функція для очистки бази даних
 async def del_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
