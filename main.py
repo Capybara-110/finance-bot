@@ -215,7 +215,11 @@ def replace_db_content(source_path: str, target_path: str):
 
 async def restore_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """Приймає файл, зчитує з нього дані та переносить їх у поточну БД."""
+
+    print("--- СПРОБА ВІДНОВЛЕННЯ: функція restore_command викликана! ---") 
+
     if update.effective_user.id != OWNER_ID:
+        print("--- ВІДХИЛЕНО: Користувач не є власником. ---")
         return
 
     temp_file_path = 'restored_db_temp.db'
@@ -427,7 +431,8 @@ if __name__ == '__main__':
     application.add_handler(CommandHandler("del", del_command, filters=filters.User(user_id=OWNER_ID)))
     application.add_handler(CommandHandler("edit", edit_command, filters=filters.User(user_id=OWNER_ID)))
     application.add_handler(CommandHandler("reset", reset_command, filters=filters.User(user_id=OWNER_ID)))
-    application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND & filters.User(user_id=OWNER_ID), handle_message))
+    application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND & filters.User(user_id=OWNER_ID), handle_message))    
+    application.add_handler(MessageHandler(filters.Document & filters.User(user_id=OWNER_ID), restore_command))
 
     # Запускаємо бота. Цей метод сам керує асинхронним циклом.
     application.run_webhook(
