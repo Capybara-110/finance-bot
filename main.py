@@ -178,6 +178,69 @@ def get_statistics():
         
     return records, total_sum
 
+def replace_db_content(source_path: str, target_path: str):
+    """Читає дані з однієї БД і переносить їх в іншу, повністю замінюючи вміст."""
+    # Підключаємось до обох баз
+    conn_source = sqlite3.connect(source_path)
+    cursor_source = conn_source.cursor()
+
+    # Читаємо АБСОЛЮТНО всі дані, включно з ID
+    cursor_source.execute('SELECT id, amount, category, created_at FROM expenses')
+    records = cursor_source.fetchall()
+    
+    conn_source.close()
+
+    if not records:
+        # Якщо файл-джерело порожній, просто очищуємо цільову базу
+        reset_database()
+        return
+
+    # Очищуємо цільову базу даних
+    reset_database()
+    
+    # Підключаємось до цільової бази, щоб записати нові дані
+    conn_target = sqlite3.connect(target_path)
+    cursor_target = conn_target.cursor()
+
+    # Вставляємо записи в цільову базу, зберігаючи їх оригінальні ID
+    cursor_target.executemany('INSERT INTO expenses (id, amount, category, created_at) VALUES (?, ?, ?, ?)', records)
+    
+    conn_target.commit()
+    conn_target.close()
+
+async def restore_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """Приймає файл, зчитує з нього дані та переносить їх у поточну БД."""
+    if update.effective_user.id != OWNER_ID:
+        return
+
+    temp_file_path = 'restored_db_temp.db'
+    
+    try:
+        document = update.message.document
+        if not document or document.file_name != 'finance.db':
+            await update.message.reply_text("Будь ласка, надішліть мені файл з назвою 'finance.db'.")
+            return
+
+        # Завантажуємо файл у тимчасове місце
+        new_db_file = await document.get_file()
+        await new_db_file.download_to_drive(temp_file_path)
+        
+        # Викликаємо нашу функцію для міграції даних
+        replace_db_content(source_path=temp_file_path, target_path=DB_PATH)
+        
+        await update.message.reply_text(
+            "✅ Відновлення завершено! Дані були успішно перенесені.\n\n"
+            "Щоб зміни вступили в силу, будь ласка, **перезапустіть сервіс вручну** в панелі керування Render."
+        )
+        print(f"Дані в БД оновлено з файлу користувачем {OWNER_ID}. Потрібен перезапуск.")
+
+    except Exception as e:
+        await update.message.reply_text(f"Під час відновлення сталася помилка: {e}")
+    finally:
+        # Дуже важливо: видаляємо тимчасовий файл, навіть якщо сталася помилка
+        if os.path.exists(temp_file_path):
+            os.remove(temp_file_path)
+                
 def edit_expense(record_id: int, new_amount: float, new_category: str):
     """Оновлює суму та категорію існуючого запису."""
     conn = sqlite3.connect('finance.db')
