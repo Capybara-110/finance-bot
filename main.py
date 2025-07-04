@@ -32,10 +32,6 @@ DATA_DIR = '/var/data'
 # Повний шлях до файлу бази даних
 DB_PATH = os.path.join(DATA_DIR, 'finance.db')
 
-# Переконуємось, що папка для БД існує.
-# Це важливо, бо при першому запуску на Render папки може не бути.
-os.makedirs(DATA_DIR, exist_ok=True)
-
 async def post_init(application: Application) -> None:
     """Налаштовує меню команд: базове для всіх і розширене для власника."""
     
