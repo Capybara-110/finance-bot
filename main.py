@@ -3,6 +3,7 @@ import asyncio
 import sqlite3
 import os
 import time
+import traceback
 from datetime import datetime
 
 # Бібліотека python-telegram-bot
@@ -222,25 +223,44 @@ async def restore_command(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
     temp_file_path = os.path.join(DATA_DIR, 'restored_db_temp.db')
     
     try:
+        # --- Перевірка №1: Чи існує і чи доступна для запису наша папка? ---
+        print(f"Перевіряю директорію: {DATA_DIR}")
+        if not os.path.isdir(DATA_DIR):
+            print(f"КРИТИЧНО: Директорія {DATA_DIR} не існує!")
+            await update.message.reply_text(f"Помилка: Директорія для даних {DATA_DIR} не знайдена.")
+            return
+        if not os.access(DATA_DIR, os.W_OK):
+            print(f"КРИТИЧНО: Немає прав на запис у {DATA_DIR}!")
+            await update.message.reply_text(f"Помилка: Немає прав на запис у директорію {DATA_DIR}.")
+            return
+        print("Директорія даних існує і доступна для запису.")
+        # -------------------------------------------------------------
+
         document = update.message.document
         if not document or document.file_name != 'finance.db':
             await update.message.reply_text("Будь ласка, надішліть мені файл з назвою 'finance.db'.")
             return
 
-        print("Отримано документ. Починаю завантаження...")
+        print("Отримано документ. Починаю завантаження в пам'ять...")
         new_db_file = await document.get_file()
         
         db_bytearray = await new_db_file.download_as_bytearray()
-        
+        print(f"Завантажено {len(db_bytearray)} байт.")
+
+        # --- Перевірка №2: Записуємо і негайно перевіряємо, чи файл з'явився ---
+        print(f"Записую байти в тимчасовий файл: {temp_file_path}")
         with open(temp_file_path, 'wb') as f:
             f.write(db_bytearray)
-        
-        print(f"Файл успішно збережено в {temp_file_path}")
+        print("Запис завершено. Перевіряю наявність файлу...")
 
-        # --- КЛЮЧОВА ЗМІНА: Додаємо паузу в 1 секунду ---
-        print("Робимо паузу для синхронізації файлової системи...")
-        time.sleep(1)
-        # ---------------------------------------------------
+        if not os.path.exists(temp_file_path):
+            print(f"КРИТИЧНО: Файл {temp_file_path} НЕ З'ЯВИВСЯ після запису!")
+            dir_contents = os.listdir(DATA_DIR)
+            print(f"Поточний вміст директорії {DATA_DIR}: {dir_contents}")
+            await update.message.reply_text("Критична помилка: не вдалося створити тимчасовий файл на диску.")
+            return
+        print(f"Файл {temp_file_path} успішно створено.")
+        # --------------------------------------------------------------------
 
         print("Починаю міграцію даних...")
         replace_db_content(source_path=temp_file_path, target_path=DB_PATH)
@@ -248,12 +268,12 @@ async def restore_command(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
         
         await update.message.reply_text(
             "✅ Відновлення завершено! Дані були успішно перенесені.\n\n"
-            "Щоб зміни вступили в силу, будь ласка, **перезапустіть сервіс вручну** в панелі керування Render."
+            "Щоб зміни вступили в силу, будь ласка, **перезапустіть сервіс вручну**."
         )
-        print(f"Дані в БД оновлено з файлу користувачем {OWNER_ID}. Потрібен перезапуск.")
 
     except Exception as e:
-        print(f"ПОМИЛКА ПІД ЧАС ВІДНОВЛЕННЯ: {e}")
+        print("!!! СТАЛАСЯ НЕПЕРЕДБАЧУВАНА ПОМИЛКА !!!")
+        traceback.print_exc() # Ця команда виведе детальний звіт про помилку в логи
         await update.message.reply_text(f"Під час відновлення сталася помилка: {e}")
     finally:
         if os.path.exists(temp_file_path):
