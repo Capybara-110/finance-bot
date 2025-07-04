@@ -2,6 +2,7 @@
 import asyncio
 import sqlite3
 import os
+import time
 from datetime import datetime
 
 # Бібліотека python-telegram-bot
@@ -218,7 +219,6 @@ async def restore_command(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
     if update.effective_user.id != OWNER_ID:
         return
 
-    # Створюємо надійний, АБСОЛЮТНИЙ шлях для тимчасового файлу
     temp_file_path = os.path.join(DATA_DIR, 'restored_db_temp.db')
     
     try:
@@ -229,17 +229,19 @@ async def restore_command(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
 
         print("Отримано документ. Починаю завантаження...")
         new_db_file = await document.get_file()
-
-        # Крок 1: Завантажуємо вміст файлу в пам'ять у вигляді байтів
+        
         db_bytearray = await new_db_file.download_as_bytearray()
         
-        # Крок 2: Вручну записуємо ці байти у файл на диску
         with open(temp_file_path, 'wb') as f:
             f.write(db_bytearray)
         
         print(f"Файл успішно збережено в {temp_file_path}")
 
-        # Крок 3: Викликаємо функцію для міграції даних
+        # --- КЛЮЧОВА ЗМІНА: Додаємо паузу в 1 секунду ---
+        print("Робимо паузу для синхронізації файлової системи...")
+        time.sleep(1)
+        # ---------------------------------------------------
+
         print("Починаю міграцію даних...")
         replace_db_content(source_path=temp_file_path, target_path=DB_PATH)
         print("Міграцію даних завершено.")
@@ -254,11 +256,10 @@ async def restore_command(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
         print(f"ПОМИЛКА ПІД ЧАС ВІДНОВЛЕННЯ: {e}")
         await update.message.reply_text(f"Під час відновлення сталася помилка: {e}")
     finally:
-        # Видаляємо тимчасовий файл, якщо він був створений
         if os.path.exists(temp_file_path):
             os.remove(temp_file_path)
             print("Тимчасовий файл бази даних видалено.")
-                        
+            
 def edit_expense(record_id: int, new_amount: float, new_category: str):
     """Оновлює суму та категорію існуючого запису."""
     conn = sqlite3.connect('finance.db')
