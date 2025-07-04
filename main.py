@@ -27,6 +27,15 @@ ALLOWED_USER_IDS = [285168148, 6300922224, 1365817032]
 # ID власника бота, який має розширені права
 OWNER_ID = 285168148
 
+# Шлях до папки на постійному диску Render
+DATA_DIR = '/var/data'
+# Повний шлях до файлу бази даних
+DB_PATH = os.path.join(DATA_DIR, 'finance.db')
+
+# Переконуємось, що папка для БД існує.
+# Це важливо, бо при першому запуску на Render папки може не бути.
+os.makedirs(DATA_DIR, exist_ok=True)
+
 async def post_init(application: Application) -> None:
     """Налаштовує меню команд: базове для всіх і розширене для власника."""
     
